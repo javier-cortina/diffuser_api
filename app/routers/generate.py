@@ -2,12 +2,10 @@ from fastapi import APIRouter
 from fastapi.responses import FileResponse
 from diffusers import DiffusionPipeline
 import os
+import csv
 from datetime import datetime
 
-router = APIRouter(
-    prefix="/generate",
-    tags=["generate"]
-)
+router = APIRouter()
 
 # load model and scheduler
 print("Loading Model...")
@@ -16,8 +14,8 @@ ldm = DiffusionPipeline.from_pretrained(model_id)
 print("Done!")
 
 # Endpoint
-@router.get("/")
-def generate(prompt: str, num_inference_steps=50, eta=0.3, guidance_scale=6):    
+@router.get("/new/")
+def generate_new(prompt: str, num_inference_steps=50, eta=0.3, guidance_scale=6):    
     # run pipeline in inference (sample random noise and denoise)
     image = ldm(
         [prompt], 
@@ -38,3 +36,19 @@ def generate(prompt: str, num_inference_steps=50, eta=0.3, guidance_scale=6):
     log_file.close()
 
     return FileResponse(new_img_directory)
+
+@router.get("/get/{id}")
+def get_img(id: int=0):
+    img_directory = f"generated_images\\images\\img_{str(id).zfill(6)}.png"
+    return FileResponse(img_directory)
+
+@router.get("/log/")
+def get_log():
+    log_file = open("generated_images\\_prompts.log", "r")
+    lines = log_file.readlines()
+    data = {}
+    for line in lines:
+        id = int(line.split(',')[0])
+        prompt = line.split(',')[-1][:-1]
+        data[id] = prompt
+    return data
